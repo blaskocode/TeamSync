@@ -26,13 +26,31 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate, onDe
   };
 
   const handleSave = async () => {
+    // Validation
+    if (!title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    if (title.length > 500) {
+      toast.error('Title must be less than 500 characters');
+      return;
+    }
+    if (description.length > 5000) {
+      toast.error('Description must be less than 5000 characters');
+      return;
+    }
+
     try {
-      await objectivesApi.update(objective.id, { title, description });
+      await objectivesApi.update(objective.id, { title: title.trim(), description: description.trim() });
       toast.success('Objective updated');
       setIsEditing(false);
       onUpdate();
-    } catch (error) {
-      toast.error('Failed to update objective');
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to update objective';
+      toast.error(errorMessage);
+      if (error.validationErrors) {
+        error.validationErrors.forEach((err: string) => toast.error(err));
+      }
     }
   };
 
