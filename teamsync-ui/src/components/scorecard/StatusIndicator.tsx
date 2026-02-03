@@ -2,7 +2,7 @@ import React from 'react';
 
 interface StatusIndicatorProps {
   status: 'red' | 'yellow' | 'green';
-  onChange: (status: 'red' | 'yellow' | 'green') => void;
+  onChange?: (status: 'red' | 'yellow' | 'green') => void;
   disabled?: boolean;
 }
 
@@ -14,7 +14,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, onChange, dis
   };
 
   const handleClick = (newStatus: 'red' | 'yellow' | 'green') => {
-    if (!disabled) {
+    if (!disabled && onChange) {
       onChange(newStatus);
     }
   };

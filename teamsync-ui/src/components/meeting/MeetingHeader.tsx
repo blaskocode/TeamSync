@@ -94,8 +94,16 @@ const MeetingHeader: React.FC = () => {
   };
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <div className="flex items-center justify-between">
+    <>
+      {!meeting.is_current && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+          <p className="text-sm text-amber-800">
+            📋 This is a historical meeting and cannot be edited.
+          </p>
+        </div>
+      )}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Team Meeting</h2>
@@ -180,7 +188,8 @@ const MeetingHeader: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

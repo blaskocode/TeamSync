@@ -3,12 +3,34 @@ import { useMeeting } from '../../contexts/MeetingContext';
 import ObjectiveCard from './ObjectiveCard';
 import { objectivesApi } from '../../api/meetings';
 import toast from 'react-hot-toast';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
 const ObjectiveList: React.FC = () => {
   const { meeting, refreshMeeting } = useMeeting();
   const [showDefiningForm, setShowDefiningForm] = useState(false);
   const [showStandardForm, setShowStandardForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   if (!meeting) return null;
 
@@ -41,18 +63,43 @@ const ObjectiveList: React.FC = () => {
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent, objectives: any[], type: string) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = objectives.findIndex((obj) => obj.id === active.id);
+    const newIndex = objectives.findIndex((obj) => obj.id === over.id);
+
+    const reorderedObjectives = arrayMove(objectives, oldIndex, newIndex);
+    const objectiveIds = reorderedObjectives.map((obj) => obj.id);
+
+    try {
+      await objectivesApi.reorder(objectiveIds);
+      toast.success('Order updated');
+      refreshMeeting();
+    } catch (error) {
+      toast.error('Failed to reorder');
+      refreshMeeting(); // Revert on error
+    }
+  };
+
+  const isReadOnly = !meeting?.is_current;
+
   return (
     <div className="space-y-6">
       {/* Defining Objectives */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900">Defining Objectives</h3>
-          <button
-            onClick={() => setShowDefiningForm(true)}
-            className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
-          >
-            + Add Objective
-          </button>
+          {meeting?.is_current && (
+            <button
+              onClick={() => setShowDefiningForm(true)}
+              className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
+            >
+              + Add Objective
+            </button>
+          )}
         </div>
 
         {showDefiningForm && (
@@ -85,32 +132,46 @@ const ObjectiveList: React.FC = () => {
           </div>
         )}
 
-        <div className="space-y-3">
-          {definingObjectives.length === 0 ? (
-            <p className="text-gray-500 text-sm">No defining objectives yet</p>
-          ) : (
-            definingObjectives.map((objective) => (
-              <ObjectiveCard
-                key={objective.id}
-                objective={objective}
-                onUpdate={refreshMeeting}
-                onDelete={refreshMeeting}
-              />
-            ))
-          )}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={(event) => handleDragEnd(event, definingObjectives, 'defining')}
+        >
+          <SortableContext
+            items={definingObjectives.map((obj) => obj.id)}
+            strategy={verticalListSortingStrategy}
+            disabled={isReadOnly}
+          >
+            <div className="space-y-3">
+              {definingObjectives.length === 0 ? (
+                <p className="text-gray-500 text-sm">No defining objectives yet</p>
+              ) : (
+                definingObjectives.map((objective) => (
+                  <ObjectiveCard
+                    key={objective.id}
+                    objective={objective}
+                    onUpdate={refreshMeeting}
+                    onDelete={refreshMeeting}
+                  />
+                ))
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* Standard Operating Objectives */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900">Standard Operating Objectives</h3>
-          <button
-            onClick={() => setShowStandardForm(true)}
-            className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
-          >
-            + Add Objective
-          </button>
+          {meeting?.is_current && (
+            <button
+              onClick={() => setShowStandardForm(true)}
+              className="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700"
+            >
+              + Add Objective
+            </button>
+          )}
         </div>
 
         {showStandardForm && (
@@ -143,20 +204,32 @@ const ObjectiveList: React.FC = () => {
           </div>
         )}
 
-        <div className="space-y-3">
-          {standardObjectives.length === 0 ? (
-            <p className="text-gray-500 text-sm">No standard operating objectives yet</p>
-          ) : (
-            standardObjectives.map((objective) => (
-              <ObjectiveCard
-                key={objective.id}
-                objective={objective}
-                onUpdate={refreshMeeting}
-                onDelete={refreshMeeting}
-              />
-            ))
-          )}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={(event) => handleDragEnd(event, standardObjectives, 'standard')}
+        >
+          <SortableContext
+            items={standardObjectives.map((obj) => obj.id)}
+            strategy={verticalListSortingStrategy}
+            disabled={isReadOnly}
+          >
+            <div className="space-y-3">
+              {standardObjectives.length === 0 ? (
+                <p className="text-gray-500 text-sm">No standard operating objectives yet</p>
+              ) : (
+                standardObjectives.map((objective) => (
+                  <ObjectiveCard
+                    key={objective.id}
+                    objective={objective}
+                    onUpdate={refreshMeeting}
+                    onDelete={refreshMeeting}
+                  />
+                ))
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
     </div>
   );

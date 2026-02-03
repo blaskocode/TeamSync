@@ -52,6 +52,7 @@ const Whiteboard: React.FC = () => {
         onChange={handleChange}
         onBlur={handleSave}
         placeholder="Use this space for notes during the meeting..."
+        disabled={!meeting?.is_current}
       />
     </div>
   );

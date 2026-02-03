@@ -11,6 +11,8 @@ class Meeting < ApplicationRecord
   validates :cascading_communications, length: { maximum: 10000 }, allow_blank: true
   validates :whiteboard_notes, length: { maximum: 10000 }, allow_blank: true
 
+  before_save :sanitize_html_fields
+
   scope :current_or_latest, -> { where("meeting_date >= ?", Date.today).order(:meeting_date).first || order(meeting_date: :desc).first }
   scope :for_date, ->(date) { where(meeting_date: date) }
   scope :chronological, -> { order(meeting_date: :asc) }
@@ -26,5 +28,17 @@ class Meeting < ApplicationRecord
 
   def is_current?
     meeting_date >= Date.today
+  end
+
+  private
+
+  def sanitize_html_fields
+    self.strategic_topics = sanitize_html(strategic_topics) if strategic_topics.present?
+    self.cascading_communications = sanitize_html(cascading_communications) if cascading_communications.present?
+    self.whiteboard_notes = sanitize_html(whiteboard_notes) if whiteboard_notes.present?
+  end
+
+  def sanitize_html(content)
+    ActionController::Base.helpers.sanitize(content, tags: %w[p br strong em u ul ol li], attributes: %w[])
   end
 end

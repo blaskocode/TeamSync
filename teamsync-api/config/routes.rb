@@ -9,6 +9,9 @@ Rails.application.routes.draw do
       post "auth/login", to: "auth#login"
       post "auth/refresh", to: "auth#refresh"
 
+      # Users
+      get "users/search", to: "users#search"
+
       # Teams
       resources :teams, only: [:index, :show, :create, :update, :destroy] do
         resources :members, controller: :team_memberships, only: [:create, :update, :destroy]

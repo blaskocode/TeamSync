@@ -43,6 +43,12 @@ const TeamWorkspace: React.FC = () => {
                   ← Back to Teams
                 </button>
                 <h1 className="text-xl font-bold text-gray-900">TeamSync</h1>
+                <button
+                  onClick={() => navigate(`/teams/${teamId}/settings`)}
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  ⚙️ Team Settings
+                </button>
               </div>
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">

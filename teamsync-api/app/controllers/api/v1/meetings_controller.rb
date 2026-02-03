@@ -36,7 +36,7 @@ module Api
         meeting = MeetingCreatorService.new(@team, params[:meeting_date]).call
 
         if meeting.persisted?
-          render_meeting(meeting), status: :created
+          render_meeting(meeting)
         else
           render json: { errors: meeting.errors.full_messages }, status: :unprocessable_entity
         end

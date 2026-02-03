@@ -3,6 +3,10 @@ import { Objective } from '../../types/meeting';
 import StatusIndicator from './StatusIndicator';
 import { objectivesApi } from '../../api/meetings';
 import toast from 'react-hot-toast';
+import DOMPurify from 'dompurify';
+import { useMeeting } from '../../contexts/MeetingContext';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ObjectiveCardProps {
   objective: Objective;
@@ -11,9 +15,26 @@ interface ObjectiveCardProps {
 }
 
 const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate, onDelete }) => {
+  const { meeting } = useMeeting();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(objective.title);
   const [description, setDescription] = useState(objective.description || '');
+  const isReadOnly = !meeting?.is_current;
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: objective.id, disabled: isReadOnly });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const handleStatusChange = async (newStatus: 'red' | 'yellow' | 'green') => {
     try {
@@ -73,11 +94,46 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate, onDe
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+    >
       <div className="flex items-start justify-between mb-3">
-        <StatusIndicator status={objective.status_color} onChange={handleStatusChange} />
+        {!isReadOnly && (
+          <div
+            {...attributes}
+            {...listeners}
+            className="mr-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+            style={{ touchAction: 'none' }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="9" cy="5" r="1" />
+              <circle cx="9" cy="12" r="1" />
+              <circle cx="9" cy="19" r="1" />
+              <circle cx="15" cy="5" r="1" />
+              <circle cx="15" cy="12" r="1" />
+              <circle cx="15" cy="19" r="1" />
+            </svg>
+          </div>
+        )}
+        <StatusIndicator
+          status={objective.status_color}
+          onChange={handleStatusChange}
+          disabled={isReadOnly}
+        />
         <div className="flex space-x-2">
-          {!isEditing && (
+          {!isEditing && !isReadOnly && (
             <>
               <button
                 onClick={() => setIsEditing(true)}
@@ -133,7 +189,7 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({ objective, onUpdate, onDe
           {objective.description && (
             <div
               className="mt-2 text-sm text-gray-600"
-              dangerouslySetInnerHTML={{ __html: objective.description }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(objective.description) }}
             />
           )}
         </div>

@@ -52,6 +52,7 @@ const CascadingComms: React.FC = () => {
         onChange={handleChange}
         onBlur={handleSave}
         placeholder="Enter cascading communications..."
+        disabled={!meeting?.is_current}
       />
     </div>
   );

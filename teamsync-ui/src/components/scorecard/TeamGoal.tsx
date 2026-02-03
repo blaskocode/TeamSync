@@ -37,6 +37,8 @@ const TeamGoal: React.FC = () => {
     }
   };
 
+  const isReadOnly = !meeting?.is_current;
+
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
@@ -47,8 +49,11 @@ const TeamGoal: React.FC = () => {
         value={goal}
         onChange={handleChange}
         onBlur={handleBlur}
+        disabled={isReadOnly}
         placeholder="Enter your team's primary goal..."
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none ${
+          isReadOnly ? 'bg-gray-100 cursor-not-allowed' : ''
+        }`}
         rows={3}
       />
     </div>

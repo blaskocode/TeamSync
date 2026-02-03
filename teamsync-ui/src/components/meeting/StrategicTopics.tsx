@@ -52,6 +52,7 @@ const StrategicTopics: React.FC = () => {
         onChange={handleChange}
         onBlur={handleSave}
         placeholder="Enter strategic topics..."
+        disabled={!meeting?.is_current}
       />
     </div>
   );

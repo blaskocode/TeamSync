@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { AgendaItem as AgendaItemType } from '../../types/meeting';
 import { agendaItemsApi } from '../../api/meetings';
 import toast from 'react-hot-toast';
+import { useMeeting } from '../../contexts/MeetingContext';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface AgendaItemProps {
   item: AgendaItemType;
@@ -10,11 +13,28 @@ interface AgendaItemProps {
 }
 
 const AgendaItem: React.FC<AgendaItemProps> = ({ item, onUpdate, onDelete }) => {
+  const { meeting } = useMeeting();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description || '');
   const [decisionNotes, setDecisionNotes] = useState(item.decision_notes || '');
   const [showDecisionNotes, setShowDecisionNotes] = useState(false);
+  const isReadOnly = !meeting?.is_current;
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id, disabled: isReadOnly });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const handleToggleComplete = async () => {
     try {
@@ -67,13 +87,47 @@ const AgendaItem: React.FC<AgendaItemProps> = ({ item, onUpdate, onDelete }) => 
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+    >
       <div className="flex items-start space-x-3">
+        {!isReadOnly && (
+          <div
+            {...attributes}
+            {...listeners}
+            className="mr-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+            style={{ touchAction: 'none' }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="9" cy="5" r="1" />
+              <circle cx="9" cy="12" r="1" />
+              <circle cx="9" cy="19" r="1" />
+              <circle cx="15" cy="5" r="1" />
+              <circle cx="15" cy="12" r="1" />
+              <circle cx="15" cy="19" r="1" />
+            </svg>
+          </div>
+        )}
         <input
           type="checkbox"
           checked={item.is_complete}
           onChange={handleToggleComplete}
-          className="mt-1 h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
+          disabled={isReadOnly}
+          className={`mt-1 h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500 ${
+            isReadOnly ? 'cursor-not-allowed' : 'cursor-pointer'
+          }`}
         />
 
         <div className="flex-1">
@@ -123,77 +177,88 @@ const AgendaItem: React.FC<AgendaItemProps> = ({ item, onUpdate, onDelete }) => 
                     <p className="mt-1 text-sm text-gray-600">{item.description}</p>
                   )}
                 </div>
-                <div className="flex space-x-2 ml-4">
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="text-sm text-indigo-600 hover:text-indigo-800"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="text-sm text-red-600 hover:text-red-800"
-                  >
-                    Delete
-                  </button>
-                </div>
+                {!isReadOnly && (
+                  <div className="flex space-x-2 ml-4">
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="text-sm text-indigo-600 hover:text-indigo-800"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="text-sm text-red-600 hover:text-red-800"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
 
               {item.is_complete && (
                 <div className="mt-3">
-                  {showDecisionNotes ? (
-                    <div className="space-y-2">
-                      <textarea
-                        value={decisionNotes}
-                        onChange={(e) => setDecisionNotes(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-sm"
-                        rows={3}
-                        placeholder="Enter decision notes..."
-                      />
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => {
-                            setDecisionNotes(item.decision_notes || '');
-                            setShowDecisionNotes(false);
-                          }}
-                          className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleSaveDecisionNotes}
-                          className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                        >
-                          Save Notes
-                        </button>
+                  {isReadOnly ? (
+                    item.decision_notes && (
+                      <div className="bg-green-50 border border-green-200 rounded p-3">
+                        <p className="text-sm font-medium text-green-900">Decision Notes:</p>
+                        <p className="text-sm text-green-800 mt-1">{item.decision_notes}</p>
                       </div>
-                    </div>
+                    )
                   ) : (
-                    <div>
-                      {item.decision_notes ? (
-                        <div className="bg-green-50 border border-green-200 rounded p-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-green-900">Decision Notes:</p>
-                              <p className="text-sm text-green-800 mt-1">{item.decision_notes}</p>
-                            </div>
-                            <button
-                              onClick={() => setShowDecisionNotes(true)}
-                              className="text-sm text-green-700 hover:text-green-900 ml-2"
-                            >
-                              Edit
-                            </button>
-                          </div>
+                    showDecisionNotes ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={decisionNotes}
+                          onChange={(e) => setDecisionNotes(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-sm"
+                          rows={3}
+                          placeholder="Enter decision notes..."
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => {
+                              setDecisionNotes(item.decision_notes || '');
+                              setShowDecisionNotes(false);
+                            }}
+                            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleSaveDecisionNotes}
+                            className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                          >
+                            Save Notes
+                          </button>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => setShowDecisionNotes(true)}
-                          className="text-sm text-indigo-600 hover:text-indigo-800"
-                        >
-                          + Add decision notes
-                        </button>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div>
+                        {item.decision_notes ? (
+                          <div className="bg-green-50 border border-green-200 rounded p-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-green-900">Decision Notes:</p>
+                                <p className="text-sm text-green-800 mt-1">{item.decision_notes}</p>
+                              </div>
+                              <button
+                                onClick={() => setShowDecisionNotes(true)}
+                                className="text-sm text-green-700 hover:text-green-900 ml-2"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setShowDecisionNotes(true)}
+                            className="text-sm text-indigo-600 hover:text-indigo-800"
+                          >
+                            + Add decision notes
+                          </button>
+                        )}
+                      </div>
+                    )
                   )}
                 </div>
               )}
